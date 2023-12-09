@@ -1,0 +1,11 @@
+# Ignore translations.json within the app directory
+app/translations.json
+app/__pycache__
+app/test_app.py
+
+# Ignore the entire directory
+config/
+database/
+venv/
+.idea/
+.git/
