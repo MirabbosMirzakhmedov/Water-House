@@ -1,5 +1,5 @@
 from telebot.types import (
-    ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton,
+    ReplyKeyboardMarkup, KeyboardButton,
     InlineKeyboardMarkup, InlineKeyboardButton
 )
 from translations import _
@@ -9,8 +9,10 @@ def start_menu(chat_id, lang):
     item1 = KeyboardButton(_('💧 Вода', lang))
     item2 = KeyboardButton(_('🚰 Кулер', lang))
     item3 = KeyboardButton(_("🌐 Выбрать язык", lang))
+    item4 = KeyboardButton(_('📥 Корзинка', lang))
+
     markup.add(item1, item2)
-    markup.add(item3)
+    markup.add(item3, item4)
     return markup
 
 def lang_menu():
@@ -31,13 +33,12 @@ def update_lang():
     return lang_menu
 
 def water_type_menu(db, lang):
-    products = db.get_products()  # Assuming each product is a tuple with (product_name,)
+    products = db.get_products()
 
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     row_buttons = []
 
     for product in products:
-        # Use the translation if available, otherwise use the original text
         translated_product_name = _(product[0], lang)
         button = KeyboardButton(translated_product_name)
         row_buttons.append(button)
@@ -49,7 +50,6 @@ def water_type_menu(db, lang):
     if len(row_buttons) == 1:
         markup.add(row_buttons[0])
 
-    # Translate the "⬅️ Back" button
     translated_back_text = _("⬅️ Назад", lang)
     back = KeyboardButton(translated_back_text)
     markup.add(back)
@@ -62,7 +62,6 @@ def coolers_menu(db, lang):
     row_buttons = []
 
     for cooler in coolers:
-        # Use the translation if available, otherwise use the original text
         translated_cooler_name = _(cooler[0], lang)
         button = KeyboardButton(translated_cooler_name)
         row_buttons.append(button)
@@ -74,7 +73,6 @@ def coolers_menu(db, lang):
     if len(row_buttons) == 1:
         markup.add(row_buttons[0])
 
-        # Translate the "⬅️ Back" button
     translated_back_text = _("⬅️ Назад", lang)
     back = KeyboardButton(text=translated_back_text)
     markup.add(back)
@@ -87,7 +85,6 @@ def get_water(db, lang, product_id):
     row_buttons = []
 
     for item in water_bottles:
-        # Use the translation if available, otherwise use the original text
         translated_product_name = _(item[0], lang)
         button = KeyboardButton(translated_product_name)
         row_buttons.append(button)
@@ -99,7 +96,6 @@ def get_water(db, lang, product_id):
     if len(row_buttons) == 1:
         markup.add(row_buttons[0])
 
-    # Translate the "⬅️ Back" button
     translated_back_text = _("⬅️ Назад", lang)
     back = KeyboardButton(text=translated_back_text)
     markup.add(back)
@@ -139,7 +135,6 @@ def cooler_amount(db, lang, id):
     row_buttons = []
 
     for quantity in range(1, water_amount + 1):
-        # quantity is 5
         button_text = str(quantity)
         button = KeyboardButton(button_text)
         row_buttons.append(button)
@@ -151,4 +146,12 @@ def cooler_amount(db, lang, id):
     if row_buttons:
         markup.add(*row_buttons)
     return markup
+
+
+def get_basket(lang):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = KeyboardButton(_('📥 Корзинка', lang))
+    markup.add(item1)
+    return markup
+
 

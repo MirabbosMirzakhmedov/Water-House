@@ -116,7 +116,6 @@ def choose_lang_handler(message):
 @bot.message_handler(func=lambda message: message.text.isdigit())
 def handle_digit_input(message):
     global item
-    # breakpoint()
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
         number = int(message.text)
@@ -124,7 +123,6 @@ def handle_digit_input(message):
 
             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Determine the type of item (cooler or water) based on a condition
             if item[1] == 'cooler':
                 subtotal = number * item[9]
                 item = db.insert_cooler_order(
@@ -150,69 +148,43 @@ def handle_digit_input(message):
                      f'\n\n{_("Хотите добавить еще что-то?", lang)}',
                 reply_markup=m.start_menu(message.chat.id, lang),
             )
-        except Exception as e:
-            print('The error message:', e)
+        except Exception:
             bot.send_message(message.chat.id,
                              _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
                                lang))
 
 
-# @bot.message_handler(func=lambda message: message.text.isdigit())
-# def cooler_is_digit(message):
-#     global item
-#     if message.chat.type == 'private':
-#         lang = db.get_lang(message.chat.id)
-#         number = int(message.text)
-#         try:
-#             subtotal = number * item[8]
-#             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-#             item = db.insert_cooler_order(
-#                 date_created=date_created,
-#                 cooler_id=item[0],
-#                 chat_id=message.chat.id,
-#                 quantity=number,
-#                 subtotal=subtotal
-#             )
-#             bot.send_message(
-#                 chat_id=message.chat.id,
-#                 text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-#                      f'\n\n{_("Хотите добавить еще что-то?", lang)}',
-#                 reply_markup=m.start_menu(message.chat.id, lang),
-#             )
-#         except:
-#             bot.send_message(message.chat.id, _("Что-то пошло не так. Пожалуйста, повторите попытку позже.", lang))
-#
-# @bot.message_handler(func=lambda message: message.text.isdigit())
-# def water_is_digit(message):
-#     global item
-#     if message.chat.type == 'private':
-#         lang = db.get_lang(message.chat.id)
-#         number = int(message.text)
-#         try:
-#
-#             breakpoint()
-#             subtotal = number * item[8]
-#             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-#             item = db.insert_water_order(
-#                 date_created=date_created,
-#                 water_id=item[0],
-#                 chat_id=message.chat.id,
-#                 quantity=number,
-#                 subtotal=subtotal
-#             )
-#             bot.send_message(
-#                 chat_id=message.chat.id,
-#                 text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-#                      f'\n\n{_("Хотите добавить еще что-то?", lang)}',
-#                 reply_markup=m.start_menu(message.chat.id, lang),
-#             )
-#         except Exception:
-#             bot.send_message(message.chat.id,
-#                              _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
-#                                lang))
+@bot.message_handler(
+    func=lambda message: message.text == "📥 Корзинка"
+    or message.text == "📥 Savat")
+def see_basket(message):
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
+        basket = db.see_basket(message.chat.id)
 
+        message_to_user = f"<b>{_('Ваша корзина', lang)}:</b>\n\n"
+        total_price = 0
 
-##########
+        try:
+            for i, item in enumerate(basket, start=1):
+                try:
+                    product_name = item[2]
+                    quantity = item[5]
+                    price = item[6]
+
+                    total_item_price = quantity * price
+                    total_price += total_item_price
+
+                    message_to_user += f"<b>{i}. {product_name}</b>\n"
+                    message_to_user += f"{quantity} x {price:,} UZS = <b>{total_item_price:,} UZS</b>\n\n"
+                except:
+                    pass
+
+            message_to_user += f"<b>{_('Общая стоимость', lang)}: {total_price:,} UZS</b>"
+            bot.send_message(message.chat.id, text=message_to_user, parse_mode='HTML')
+        except:
+            bot.send_message(message.chat.id, text=_("Ваша корзина пока пуста", lang))
+
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
     global item

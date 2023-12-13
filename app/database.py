@@ -205,3 +205,26 @@ class Database:
                 return result[0]
             else:
                 return None
+
+    def see_basket(self, chat_id):
+        try:
+            with self._create_connection() as connection:
+                cursor = connection.cursor()
+                query = (
+                    "SELECT b.basket_id, b.chat_id, COALESCE(wb.name, wc.name) AS product_name, "
+                    "COALESCE(wb.id, wc.id) AS product_id, COALESCE(wb.id_def, wc.id_def) AS product_id_def, "
+                    "b.quantity, COALESCE(wb.price, wc.price) AS price, b.date_created, b.subtotal "
+                    "FROM basket b "
+                    "LEFT JOIN water_bottle wb ON b.water_id = wb.id "
+                    "LEFT JOIN water_cooler wc ON b.cooler_id = wc.id "
+                    "WHERE b.chat_id = ?"
+                )
+                cursor.execute(query, (chat_id,))
+                result = cursor.fetchall()
+                if result:
+                    return result
+                else:
+                    return None
+        except Exception as e:
+            return None
+
