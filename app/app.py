@@ -1,5 +1,5 @@
 import logging
-
+from datetime import datetime
 import telebot as telebot
 from telebot.types import CallbackQuery, ReplyKeyboardRemove
 
@@ -11,6 +11,8 @@ from translations import _
 bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
 db = Database('../database/water_house.db')
 user_history = {}
+item = None
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -73,36 +75,149 @@ def update_language(callback: CallbackQuery):
         reply_markup=m.start_menu(callback.from_user.id, lang)
     )
 
-@bot.message_handler(func=lambda message: True)
-def handle_messages(message):
+@bot.message_handler(
+    func=lambda message: message.text == "💧 Вода"
+    or message.text == "💧 Suv")
+def water_button_handler(message):
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
+        bot.send_message(
+            text=_('💧 Выберите тип воды:', lang),
+            chat_id=message.chat.id,
+            reply_markup=m.water_type_menu(db, lang)
+        )
+        user_history[message.chat.id].append(message.text)
 
-        # button to change language
-        if message.text == _("🌐 Выбрать язык", lang):
-            bot.send_message(message.chat.id,
-'Iltimos, tilni tanlang\n'
-'Пожалуйста, выберите язык 🔽',
+@bot.message_handler(
+    func=lambda message: message.text == "🚰 Кулер"
+    or message.text == "🚰 Kuler")
+def cooler_button_handler(message):
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
+        bot.send_message(
+            text=_("🚰 Выберите кулер", lang),
+            chat_id=message.chat.id,
+            reply_markup=m.coolers_menu(db, lang)
+        )
+        user_history[message.chat.id].append(message.text)
+
+
+@bot.message_handler(
+    func=lambda message: message.text == "🌐 Выбрать язык"
+    or message.text == "🌐 Tilni tanlash")
+def choose_lang_handler(message):
+    if message.chat.type == 'private':
+        bot.send_message(message.chat.id,
+            'Iltimos, tilni tanlang\n'
+            'Пожалуйста, выберите язык 🔽',
             reply_markup=m.update_lang())
 
-        # Suv handler
-        if message.text == "💧 Вода" or message.text == "💧 Suv":
-            bot.send_message(
-                text=_('💧 Выберите тип воды:', lang),
-                chat_id=message.chat.id,
-                reply_markup=m.water_type_menu(db, lang)
-            )
-            user_history[message.chat.id].append(message.text)
 
-        if message.text == "🚰 Кулер" or message.text == "🚰 Kuler":
-            bot.send_message(
-                text=_("🚰 Выберите кулер", lang),
-                chat_id=message.chat.id,
-                reply_markup=m.coolers_menu(db, lang)
-            )
-            user_history[message.chat.id].append(message.text)
+@bot.message_handler(func=lambda message: message.text.isdigit())
+def handle_digit_input(message):
+    global item
+    # breakpoint()
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
+        number = int(message.text)
+        try:
 
-        # handle water type (gazli, gazsiz, etc)
+            date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # Determine the type of item (cooler or water) based on a condition
+            if item[1] == 'cooler':
+                subtotal = number * item[9]
+                item = db.insert_cooler_order(
+                    date_created=date_created,
+                    cooler_id=item[0],
+                    chat_id=message.chat.id,
+                    quantity=number,
+                    subtotal=subtotal
+                )
+            elif item[1] == 'water':
+                subtotal = number * item[4]
+                item = db.insert_water_order(
+                    date_created=date_created,
+                    water_id=item[0],
+                    chat_id=message.chat.id,
+                    quantity=number,
+                    subtotal=subtotal
+                )
+
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+                     f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                reply_markup=m.start_menu(message.chat.id, lang),
+            )
+        except Exception as e:
+            print('The error message:', e)
+            bot.send_message(message.chat.id,
+                             _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
+                               lang))
+
+
+# @bot.message_handler(func=lambda message: message.text.isdigit())
+# def cooler_is_digit(message):
+#     global item
+#     if message.chat.type == 'private':
+#         lang = db.get_lang(message.chat.id)
+#         number = int(message.text)
+#         try:
+#             subtotal = number * item[8]
+#             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#             item = db.insert_cooler_order(
+#                 date_created=date_created,
+#                 cooler_id=item[0],
+#                 chat_id=message.chat.id,
+#                 quantity=number,
+#                 subtotal=subtotal
+#             )
+#             bot.send_message(
+#                 chat_id=message.chat.id,
+#                 text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+#                      f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+#                 reply_markup=m.start_menu(message.chat.id, lang),
+#             )
+#         except:
+#             bot.send_message(message.chat.id, _("Что-то пошло не так. Пожалуйста, повторите попытку позже.", lang))
+#
+# @bot.message_handler(func=lambda message: message.text.isdigit())
+# def water_is_digit(message):
+#     global item
+#     if message.chat.type == 'private':
+#         lang = db.get_lang(message.chat.id)
+#         number = int(message.text)
+#         try:
+#
+#             breakpoint()
+#             subtotal = number * item[8]
+#             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#             item = db.insert_water_order(
+#                 date_created=date_created,
+#                 water_id=item[0],
+#                 chat_id=message.chat.id,
+#                 quantity=number,
+#                 subtotal=subtotal
+#             )
+#             bot.send_message(
+#                 chat_id=message.chat.id,
+#                 text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+#                      f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+#                 reply_markup=m.start_menu(message.chat.id, lang),
+#             )
+#         except Exception:
+#             bot.send_message(message.chat.id,
+#                              _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
+#                                lang))
+
+
+##########
+@bot.message_handler(func=lambda message: True)
+def handle_messages(message):
+    global item
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
         products = db.get_products()
         matching_product = next((item for item in products if message.text in item), None)
         if matching_product:
@@ -117,37 +232,42 @@ def handle_messages(message):
 
         # handler for water products
         water_order = db.get_water_order(message.text)
-        if water_order and message.text == water_order[0][1]:
+        if water_order and message.text == water_order[0][2]:
             item = db.get_water_order(message.text)[0]
             product = {
-                _('Названия', lang): item[1],
-                _('Объем', lang): item[2],
-                _('Цена', lang): item[3],
-                _('Описание', lang): item[4],
+                _('Названия', lang): item[2],
+                _('Объем', lang): item[3],
+                _('Цена', lang): item[4],
+                _('Описание', lang): item[5],
             }
+
             photo = db.get_water_image(item[0])
             caption = f"" \
 f"<b>{product[_('Названия', lang)]}, {product[_('Объем', lang)]}\n\n</b>" \
 f"{product[_('Описание', lang)]}\n\n" \
-f"<b>{_('Цена', lang)}: {product[_('Цена', lang)]} UZS</b>"
+f"{_('Доступно', lang)}: <b>{db.count_water(item[0])}</b> | " \
+f"<b>{_('Цена', lang)}: {product[_('Цена', lang)]} UZS</b>\n\n" \
+f"{_('Выберите количество', lang)}\n{_('Или напишите число, сколько вы хотите 🔽', lang)}"
             bot.send_photo(message.chat.id, photo=photo,
             caption=caption,
-            parse_mode="HTML")
+            parse_mode="HTML",
+            reply_markup=m.water_amount(db,lang,item[0]))
             user_history[message.chat.id].append(message.text)
+
 
         # handle cooler order
         cooler_order = db.get_cooler_order(message.text)
-        if cooler_order and message.text == cooler_order[0][1]:
+        if cooler_order and message.text == cooler_order[0][2]:
             item = db.get_cooler_order(message.text)[0]
             product = {
-                _('Названия', lang): item[1],
-                _('Описание', lang): item[2],
-                _('Тип', lang): item[3],
-                _('Установка капсул воды', lang): item[4],
-                _('Нагрев', lang): item[5],
-                _('Глубина', lang): item[6],
-                _('Высота', lang): item[7],
-                _('Цена', lang): item[8],
+                _('Названия', lang): item[2],
+                _('Описание', lang): item[3],
+                _('Тип', lang): item[4],
+                _('Установка капсул воды', lang): item[5],
+                _('Нагрев', lang): item[6],
+                _('Глубина', lang): item[7],
+                _('Высота', lang): item[8],
+                _('Цена', lang): item[9],
 
             }
             photo = db.get_cooler_image(item[0])
@@ -158,25 +278,34 @@ f"{product[_('Описание', lang)]}\n\n" \
 f"<b>{_('Тип', lang)}:</b> {_(product[_('Тип', lang)], lang)}\n" \
 f"<b>{_('Установка капсул воды', lang)}:</b> {_(product[_('Установка капсул воды', lang)], lang)}\n" \
 f"<b>{_('Нагрев', lang)}:</b> {_(answer, lang)}\n" \
-f"<b>{_('Глубина', lang)}:</b> {product[_('Глубина', lang)]}\n" \
-f"<b>{_('Высота', lang)}:</b> {product[_('Высота', lang)]}\n\n" \
-f"<b>{_('Цена', lang)}: {product[_('Цена', lang)]} UZS</b>"
+f"<b>{_('Глубина', lang)}:</b> {product[_('Глубина', lang)]} {_('см', lang)}\n" \
+f"<b>{_('Высота', lang)}:</b> {product[_('Высота', lang)]} {_('см', lang)}\n\n" \
+f"{_('Доступно', lang)}: <b>{db.count_cooler(item[0])}</b> | " \
+f"<b>{_('Цена', lang)}: {product[_('Цена', lang)]} UZS</b>\n\n" \
+f"{_('Выберите количество', lang)}\n{_('Или напишите число, сколько вы хотите 🔽', lang)}"
+
             bot.send_photo(message.chat.id, photo=photo,
-                           caption=caption,
-                           parse_mode="HTML")
+                caption=caption,
+                parse_mode="HTML",
+                reply_markup=m.cooler_amount(db=db, lang=lang, id=item[0]))
             user_history[message.chat.id].append(message.text)
+            return
 
-        elif message.text == "⬅️ Назад" or message.text == "⬅️ Ortga":
-            # breakpoint()
-            if user_history[message.chat.id]:
-                user_history[message.chat.id].pop()
-                bot.send_message(
-                    message.chat.id,
-                    text=_('😊 Что вас интересует?', lang),
-                    reply_markup=m.start_menu(message.chat.id, lang)
-                )
-                user_history[message.chat.id].append(message.text)
 
+@bot.message_handler(
+    func=lambda message: message.text == "⬅️ Назад"
+    or message.text == "⬅️ Ortga")
+def back_button_handler(message):
+    if message.chat.type == 'private':
+        if user_history[message.chat.id]:
+            lang = db.get_lang(message.chat.id)
+            user_history[message.chat.id].pop()
+            bot.send_message(
+                message.chat.id,
+                text=_('😊 Что вас интересует?', lang),
+                reply_markup=m.start_menu(message.chat.id, lang)
+            )
+            user_history[message.chat.id].append(message.text)
 
 
 

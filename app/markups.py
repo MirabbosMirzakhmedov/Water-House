@@ -106,3 +106,49 @@ def get_water(db, lang, product_id):
 
     return markup
 
+def water_amount(db, lang, id):
+    water_amount = db.get_water_amount(id=id)
+
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    translated_back_text = _("⬅️ Назад", lang)
+    back = KeyboardButton(text=translated_back_text)
+    markup.add(back)
+    row_buttons = []
+
+    for quantity in range(1, water_amount + 1):
+        button_text = str(quantity)
+        button = KeyboardButton(button_text)
+        row_buttons.append(button)
+
+        if len(row_buttons) >= 3:
+            markup.add(*row_buttons)
+            row_buttons = []
+
+    if row_buttons:
+        markup.add(*row_buttons)
+
+    return markup
+
+def cooler_amount(db, lang, id):
+    water_amount = db.get_cooler_amount(id=id) # it is 5
+
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    translated_back_text = _("⬅️ Назад", lang)
+    back = KeyboardButton(text=translated_back_text)
+    markup.add(back)
+    row_buttons = []
+
+    for quantity in range(1, water_amount + 1):
+        # quantity is 5
+        button_text = str(quantity)
+        button = KeyboardButton(button_text)
+        row_buttons.append(button)
+
+        if len(row_buttons) >= 3:
+            markup.add(*row_buttons)
+            row_buttons = []
+
+    if row_buttons:
+        markup.add(*row_buttons)
+    return markup
+

@@ -127,3 +127,81 @@ class Database:
         except Exception as e:
             print(f"Error retrieving image: {e}")
             return None
+
+    def update_water_order(self, chat_id, quantity, water_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "UPDATE orders SET " \
+                    "water_quantity = ?," \
+                    "chat_id = ?" \
+                    "WHERE water_id = ?"
+            cursor.execute(query, (quantity, chat_id, water_id,))
+            return cursor.fetchall()
+
+    def insert_cooler_order(self, date_created, cooler_id, chat_id, quantity,
+                            subtotal):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "INSERT INTO basket (date_created, cooler_id, chat_id, quantity, subtotal) " \
+                    "VALUES (?, ?, ?, ?, ?)"
+            cursor.execute(query, (
+            date_created, cooler_id, chat_id, quantity, subtotal,))
+            connection.commit()
+
+    def insert_water_order(self, date_created, water_id, chat_id, quantity,
+                            subtotal):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "INSERT INTO basket (date_created, water_id, chat_id, quantity, subtotal) " \
+                    "VALUES (?, ?, ?, ?, ?)"
+            cursor.execute(query, (
+            date_created, water_id, chat_id, quantity, subtotal,))
+            connection.commit()
+
+    def get_water_amount(self, id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "SELECT quantity FROM water_bottle WHERE id = ?"
+            cursor.execute(query, (id,))
+            result = cursor.fetchone()
+
+            if result is not None:
+                return result[0]
+            else:
+                return None
+
+    def get_cooler_amount(self, id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "SELECT quantity FROM water_cooler WHERE id = ?"
+            cursor.execute(query, (id,))
+            result = cursor.fetchone()
+
+            if result is not None:
+                return result[0]
+            else:
+                return None
+
+    def count_cooler(self, item_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "select quantity from water_cooler where id = ?"
+            cursor.execute(query, (item_id,))
+            result = cursor.fetchone()
+
+            if result is not None:
+                return result[0]
+            else:
+                return None
+
+    def count_water(self, item_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "select quantity from water_bottle where id = ?"
+            cursor.execute(query, (item_id,))
+            result = cursor.fetchone()
+
+            if result is not None:
+                return result[0]
+            else:
+                return None
