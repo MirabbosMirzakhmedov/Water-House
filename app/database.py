@@ -228,3 +228,20 @@ class Database:
         except Exception as e:
             return None
 
+    def minus_water_products(self, number, id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = ("UPDATE water_bottle SET quantity = quantity - ? "
+                     "WHERE id = ?;")
+            cursor.execute(query, (number, id,))
+            result = cursor.fetchone()
+            return result
+
+    def minus_cooler_products(self, number, id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = ("UPDATE water_cooler SET quantity = quantity - ? "
+                     "WHERE id = ?;")
+            cursor.execute(query, (number, id,))
+            result = cursor.fetchone()
+            return result

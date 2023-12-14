@@ -119,39 +119,59 @@ def handle_digit_input(message):
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
         number = int(message.text)
-        try:
 
+        try:
             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if item[1] == 'cooler':
-                subtotal = number * item[9]
-                item = db.insert_cooler_order(
-                    date_created=date_created,
-                    cooler_id=item[0],
-                    chat_id=message.chat.id,
-                    quantity=number,
-                    subtotal=subtotal
-                )
-            elif item[1] == 'water':
-                subtotal = number * item[4]
-                item = db.insert_water_order(
-                    date_created=date_created,
-                    water_id=item[0],
-                    chat_id=message.chat.id,
-                    quantity=number,
-                    subtotal=subtotal
-                )
+                if db.count_cooler(item[0]) == 0:
+                    bot.send_message(message.chat.id, text=_(
+                        'Извините, но этот продукт не доступен', lang),
+                        reply_markup=m.start_menu(message.chat.id, lang))
+                else:
+                    subtotal = number * item[9]
+                    db.insert_cooler_order(
+                        date_created=date_created,
+                        cooler_id=item[0],
+                        chat_id=message.chat.id,
+                        quantity=number,
+                        subtotal=subtotal
+                    )
+                    db.minus_cooler_products(number=number, id=item[0])
 
-            bot.send_message(
-                chat_id=message.chat.id,
-                text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-                     f'\n\n{_("Хотите добавить еще что-то?", lang)}',
-                reply_markup=m.start_menu(message.chat.id, lang),
-            )
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        reply_markup=m.start_menu(message.chat.id, lang),
+                    )
+
+            elif item[1] == 'water':
+                if db.count_water(item[0]) == 0:
+                    bot.send_message(message.chat.id, text=_(
+                        'Извините, но этот продукт не доступен', lang),
+                        reply_markup=m.start_menu(message.chat.id, lang))
+                else:
+                    subtotal = number * item[4]
+                    db.insert_water_order(
+                        date_created=date_created,
+                        water_id=item[0],
+                        chat_id=message.chat.id,
+                        quantity=number,
+                        subtotal=subtotal
+                    )
+                    db.minus_water_products(number=number, id=item[0])
+
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        reply_markup=m.start_menu(message.chat.id, lang),
+                    )
         except Exception:
             bot.send_message(message.chat.id,
-                             _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
-                               lang))
+                 _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
+                   lang))
 
 
 @bot.message_handler(
