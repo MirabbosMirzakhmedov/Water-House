@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 import telebot as telebot
-from telebot.types import CallbackQuery, ReplyKeyboardRemove
+from telebot.types import CallbackQuery
 
 import config.secret as payload
 import markups as m
@@ -11,7 +11,7 @@ from translations import _
 bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
 db = Database('../database/water_house.db')
 user_history = {}
-item = None
+item = ()
 
 
 @bot.message_handler(commands=['start'])
@@ -112,67 +112,22 @@ def choose_lang_handler(message):
             'Пожалуйста, выберите язык 🔽',
             reply_markup=m.update_lang())
 
-
-@bot.message_handler(func=lambda message: message.text.isdigit())
-def handle_digit_input(message):
+@bot.message_handler(
+    func=lambda message: message.text == "🔄 Очистить корзину"
+    or message.text == "🔄 Savatni tozalash")
+def see_basket(message):
     global item
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
-        number = int(message.text)
-
         try:
-            date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-            if item[1] == 'cooler':
-                if db.count_cooler(item[0]) == 0:
-                    bot.send_message(message.chat.id, text=_(
-                        'Извините, но этот продукт не доступен', lang),
-                        reply_markup=m.start_menu(message.chat.id, lang))
-                else:
-                    subtotal = number * item[9]
-                    db.insert_cooler_order(
-                        date_created=date_created,
-                        cooler_id=item[0],
-                        chat_id=message.chat.id,
-                        quantity=number,
-                        subtotal=subtotal
-                    )
-                    db.minus_cooler_products(number=number, id=item[0])
-
-                    bot.send_message(
-                        chat_id=message.chat.id,
-                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
-                        reply_markup=m.start_menu(message.chat.id, lang),
-                    )
-
-            elif item[1] == 'water':
-                if db.count_water(item[0]) == 0:
-                    bot.send_message(message.chat.id, text=_(
-                        'Извините, но этот продукт не доступен', lang),
-                        reply_markup=m.start_menu(message.chat.id, lang))
-                else:
-                    subtotal = number * item[4]
-                    db.insert_water_order(
-                        date_created=date_created,
-                        water_id=item[0],
-                        chat_id=message.chat.id,
-                        quantity=number,
-                        subtotal=subtotal
-                    )
-                    db.minus_water_products(number=number, id=item[0])
-
-                    bot.send_message(
-                        chat_id=message.chat.id,
-                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
-                        reply_markup=m.start_menu(message.chat.id, lang),
-                    )
-        except Exception:
-            bot.send_message(message.chat.id,
-                 _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
-                   lang))
-
+            q = db.update_basket(message.chat.id)
+            db.get_after_deletion(chat_id=message.chat.id, quantity=q[1])
+            db.empty_basket(message.chat.id) # empty basket
+            bot.send_message(message.chat.id, _("Ваша корзинка теперь пуста",lang))
+        except:
+            bot.send_message(
+                message.chat.id,
+                text=_("Ваша корзина пока пуста", lang))
 
 @bot.message_handler(
     func=lambda message: message.text == "📥 Корзинка"
@@ -201,9 +156,103 @@ def see_basket(message):
                     pass
 
             message_to_user += f"<b>{_('Общая стоимость', lang)}: {total_price:,} UZS</b>"
-            bot.send_message(message.chat.id, text=message_to_user, parse_mode='HTML')
+            bot.send_message(message.chat.id, text=message_to_user,
+                 parse_mode='HTML', reply_markup=m.empty_basket(lang))
         except:
             bot.send_message(message.chat.id, text=_("Ваша корзина пока пуста", lang))
+
+@bot.message_handler(
+    func=lambda message: message.text == "⬅️ Назад"
+    or message.text == "⬅️ Ortga")
+def back_button_handler(message):
+    if message.chat.type == 'private':
+        if user_history[message.chat.id]:
+            lang = db.get_lang(message.chat.id)
+            user_history[message.chat.id].pop()
+            bot.send_message(
+                message.chat.id,
+                text=_('😊 Что вас интересует?', lang),
+                reply_markup=m.start_menu(message.chat.id, lang)
+            )
+            user_history[message.chat.id].append(message.text)
+
+
+@bot.message_handler(func=lambda message: message.text.isdigit())
+def handle_digit_input(message):
+    global item
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
+        number = int(message.text)
+        try:
+            date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            if item[1] == 'cooler':
+                if db.count_cooler(item[0]) == 0:
+                    bot.send_message(message.chat.id, text=_(
+                        'Извините, но этот продукт не доступен', lang),
+                        reply_markup=m.start_menu(message.chat.id, lang))
+                else:
+                    subtotal = number * item[9]
+
+                    db.insert_cooler_order(
+                        chat_id=message.chat.id,
+                        date_created=date_created,
+                        cooler_id=item[0],
+                        id_def=item[1],
+                        name=item[2],
+                        cooler_definition=item[3],
+                        price=item[9],
+                        quantity=number,
+                        subtotal=subtotal,
+                        type=item[4],
+                        capsule_setup=item[5],
+                        heat=item[6],
+                        width=item[7],
+                        height=item[8]
+                    )
+                    db.minus_cooler_products(number=number, id=item[0])
+
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        reply_markup=m.start_menu(message.chat.id, lang),
+                    )
+
+            elif item[1] == 'water':
+                if db.count_water(item[0]) == 0:
+                    bot.send_message(message.chat.id, text=_(
+                        'Извините, но этот продукт не доступен', lang),
+                        reply_markup=m.start_menu(message.chat.id, lang))
+                else:
+                    subtotal = number * item[4]
+                    db.insert_water_order(
+                        chat_id=message.chat.id,
+                        date_created=date_created,
+                        water_id=item[0],
+                        id_def=item[1],
+                        product_id=item[6],
+                        name=item[2],
+                        water_definition=item[5],
+                        price=item[4],
+                        quantity=number,
+                        subtotal=subtotal,
+                        volume=item[3]
+                    )
+                    db.minus_water_products(number=number, id=item[0])
+
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
+                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        reply_markup=m.start_menu(message.chat.id, lang),
+                    )
+        except Exception as e:
+            print(e)
+            bot.send_message(message.chat.id,
+                 _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
+                   lang))
+
 
 @bot.message_handler(func=lambda message: True)
 def handle_messages(message):
@@ -227,10 +276,14 @@ def handle_messages(message):
         if water_order and message.text == water_order[0][2]:
             item = db.get_water_order(message.text)[0]
             product = {
+                'id': item[0],
+                'type': item[1],
                 _('Названия', lang): item[2],
                 _('Объем', lang): item[3],
                 _('Цена', lang): item[4],
                 _('Описание', lang): item[5],
+                'product_id': item[6],
+                'quantity': item[7]
             }
 
             photo = db.get_water_image(item[0])
@@ -252,6 +305,8 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
         if cooler_order and message.text == cooler_order[0][2]:
             item = db.get_cooler_order(message.text)[0]
             product = {
+                'id': item[0],
+                'type': item[1],
                 _('Названия', lang): item[2],
                 _('Описание', lang): item[3],
                 _('Тип', lang): item[4],
@@ -260,7 +315,7 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
                 _('Глубина', lang): item[7],
                 _('Высота', lang): item[8],
                 _('Цена', lang): item[9],
-
+                'quantity': item[10]
             }
             photo = db.get_cooler_image(item[0])
             answer = _(product[_('Нагрев', lang)])
@@ -282,22 +337,6 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
                 reply_markup=m.cooler_amount(db=db, lang=lang, id=item[0]))
             user_history[message.chat.id].append(message.text)
             return
-
-
-@bot.message_handler(
-    func=lambda message: message.text == "⬅️ Назад"
-    or message.text == "⬅️ Ortga")
-def back_button_handler(message):
-    if message.chat.type == 'private':
-        if user_history[message.chat.id]:
-            lang = db.get_lang(message.chat.id)
-            user_history[message.chat.id].pop()
-            bot.send_message(
-                message.chat.id,
-                text=_('😊 Что вас интересует?', lang),
-                reply_markup=m.start_menu(message.chat.id, lang)
-            )
-            user_history[message.chat.id].append(message.text)
 
 
 

@@ -138,24 +138,42 @@ class Database:
             cursor.execute(query, (quantity, chat_id, water_id,))
             return cursor.fetchall()
 
-    def insert_cooler_order(self, date_created, cooler_id, chat_id, quantity,
-                            subtotal):
+    def insert_cooler_order(
+            self, chat_id, date_created, cooler_id, id_def, name, cooler_definition, price,
+            quantity, subtotal, type, capsule_setup, heat, width,
+            height):
         with self._create_connection() as connection:
             cursor = connection.cursor()
-            query = "INSERT INTO basket (date_created, cooler_id, chat_id, quantity, subtotal) " \
-                    "VALUES (?, ?, ?, ?, ?)"
+            query = ("INSERT INTO basket ("
+                     "chat_id, date_created, cooler_id, "
+                     "id_def, name, cooler_definition, "
+                     "price, quantity, subtotal, type, capsule_setup, "
+                     "heat, width, height) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
             cursor.execute(query, (
-            date_created, cooler_id, chat_id, quantity, subtotal,))
+                chat_id, date_created, cooler_id,
+                id_def, name, cooler_definition,
+                price, quantity, subtotal, type,
+                capsule_setup, heat, width, height,))
             connection.commit()
 
-    def insert_water_order(self, date_created, water_id, chat_id, quantity,
-                            subtotal):
+    def insert_water_order(
+            self, chat_id, date_created, water_id, id_def,
+            product_id, name, water_definition, price, volume,
+            quantity, subtotal):
         with self._create_connection() as connection:
             cursor = connection.cursor()
-            query = "INSERT INTO basket (date_created, water_id, chat_id, quantity, subtotal) " \
-                    "VALUES (?, ?, ?, ?, ?)"
+            query = ("INSERT INTO basket ("
+                     "chat_id, date_created, water_id, "
+                     "id_def, product_id, name, water_definition, "
+                     "price, volume, quantity, subtotal) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+
             cursor.execute(query, (
-            date_created, water_id, chat_id, quantity, subtotal,))
+                chat_id, date_created, water_id,
+                id_def, product_id, name, water_definition,
+                price, volume, quantity, subtotal,))
             connection.commit()
 
     def get_water_amount(self, id):
@@ -245,3 +263,34 @@ class Database:
             cursor.execute(query, (number, id,))
             result = cursor.fetchone()
             return result
+
+    def empty_basket(self, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = ("DELETE FROM basket WHERE chat_id = ?;")
+            cursor.execute(query, (chat_id,))
+            result = cursor.fetchall()
+            return result
+
+    def get_after_deletion(self, quantity, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = ("UPDATE water_bottle SET quantity = quantity + ? "
+                     "WHERE id IN ("
+                     "SELECT water_id FROM basket WHERE chat_id = ?);")
+            cursor.execute(query, (quantity, chat_id,))
+            # Use rowcount to get the number of affected rows
+            result = cursor.rowcount
+            return result
+
+    def update_basket(self, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            select_query = "SELECT water_id, quantity FROM basket WHERE chat_id = ?;"
+            cursor.execute(select_query, (chat_id,))
+            records = cursor.fetchall()
+            for record in records:
+                water_id, quantity = record
+
+                return water_id, quantity
+

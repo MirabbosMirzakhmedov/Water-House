@@ -154,4 +154,15 @@ def get_basket(lang):
     markup.add(item1)
     return markup
 
+def empty_basket(lang):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = KeyboardButton(_('💧 Вода', lang))
+    item2 = KeyboardButton(_('🚰 Кулер', lang))
+    item3 = KeyboardButton(_("🌐 Выбрать язык", lang))
+    item4 = KeyboardButton(_('🔄 Очистить корзину', lang))
+    item5 = KeyboardButton(_('📥 Корзинка', lang))
+    markup.add(item1, item2)
+    markup.add(item5, item4)
+    markup.add(item3)
 
+    return markup
