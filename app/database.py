@@ -279,7 +279,6 @@ class Database:
                      "WHERE id IN ("
                      "SELECT water_id FROM basket WHERE chat_id = ?);")
             cursor.execute(query, (quantity, chat_id,))
-            # Use rowcount to get the number of affected rows
             result = cursor.rowcount
             return result
 
@@ -294,3 +293,14 @@ class Database:
 
                 return water_id, quantity
 
+    def get_delivery_buttons(self):
+        buttons = []
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "select * from delivery_buttons;"
+            cursor.execute(query,)
+            results = cursor.fetchall()
+            for result in results:
+                button_id, name_ru, name_uz = result
+                buttons.append([button_id, name_ru, name_uz])
+        return buttons

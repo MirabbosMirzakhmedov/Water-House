@@ -21,9 +21,10 @@ def start(message):
             bot.send_message(message.chat.id, 'Iltimos, tilni tanlang\n'
                                               'Пожалуйста, выберите язык 🔽',
                              reply_markup=m.lang_menu())
+            user_id = message.from_user.id
+            user_history[user_id] = []
         else:
             lang = db.get_lang(message.chat.id)
-            # button is not disappearing
             bot.send_message(
                 message.chat.id,
                 text=_('😊 Что вас интересует?', lang),
@@ -33,7 +34,6 @@ def start(message):
             user_history[user_id] = []
 
 
-# команда для рассылки
 @bot.message_handler(commands=['sendall'])
 def sendall(message):
     if message.chat.type == 'private':
@@ -50,7 +50,6 @@ def sendall(message):
                     db.set_active(chat_id=row[0], active=0)
             bot.send_message(message.chat.id, _('Успешная рассылка!', lang))
 
-#@bot.callback_query_handler(func=lambda callback: callback.data)
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith('lang_'))
 def set_language(callback: CallbackQuery):
     bot.delete_message(callback.from_user.id, callback.message.message_id)
@@ -63,6 +62,7 @@ def set_language(callback: CallbackQuery):
             text=_('😊 Что вас интересует?', lang),
             reply_markup=m.start_menu(callback.from_user.id,lang)
         )
+        user_history[callback.from_user.id].append(callback.data)
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith('update_lang_'))
 def update_language(callback: CallbackQuery):
@@ -74,6 +74,7 @@ def update_language(callback: CallbackQuery):
         text=_('😊 Что вас интересует?', lang),
         reply_markup=m.start_menu(callback.from_user.id, lang)
     )
+    user_history[callback.from_user.id].append(callback.data)
 
 @bot.message_handler(
     func=lambda message: message.text == "💧 Вода"
@@ -82,7 +83,7 @@ def water_button_handler(message):
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
         bot.send_message(
-            text=_('💧 Выберите тип воды:', lang),
+            text=_('💧 Выберите тип воды', lang),
             chat_id=message.chat.id,
             reply_markup=m.water_type_menu(db, lang)
         )
@@ -111,6 +112,7 @@ def choose_lang_handler(message):
             'Iltimos, tilni tanlang\n'
             'Пожалуйста, выберите язык 🔽',
             reply_markup=m.update_lang())
+        user_history[message.chat.id].append(message.text)
 
 @bot.message_handler(
     func=lambda message: message.text == "🔄 Очистить корзину"
@@ -122,12 +124,14 @@ def see_basket(message):
         try:
             q = db.update_basket(message.chat.id)
             db.get_after_deletion(chat_id=message.chat.id, quantity=q[1])
-            db.empty_basket(message.chat.id) # empty basket
+            db.empty_basket(message.chat.id)
             bot.send_message(message.chat.id, _("Ваша корзинка теперь пуста",lang))
+            user_history[message.chat.id].append(message.text)
         except:
             bot.send_message(
                 message.chat.id,
                 text=_("Ваша корзина пока пуста", lang))
+            user_history[message.chat.id].append(message.text)
 
 @bot.message_handler(
     func=lambda message: message.text == "📥 Корзинка"
@@ -158,8 +162,10 @@ def see_basket(message):
             message_to_user += f"<b>{_('Общая стоимость', lang)}: {total_price:,} UZS</b>"
             bot.send_message(message.chat.id, text=message_to_user,
                  parse_mode='HTML', reply_markup=m.empty_basket(lang))
+            user_history[message.chat.id].append(message.text)
         except:
             bot.send_message(message.chat.id, text=_("Ваша корзина пока пуста", lang))
+            user_history[message.chat.id].append(message.text)
 
 @bot.message_handler(
     func=lambda message: message.text == "⬅️ Назад"
@@ -176,6 +182,20 @@ def back_button_handler(message):
             )
             user_history[message.chat.id].append(message.text)
 
+@bot.message_handler(
+    func=lambda message: message.text == '🚚 Оформить заказ'
+    or message.text == "🚚 Buyurtma berish")
+def get_delivery_buttons(message):
+    if message.chat.type == 'private':
+        lang = db.get_lang(message.chat.id)
+
+        bot.send_message(
+            message.chat.id,
+            text=_("Выберите тип доставки 👇🏻", lang),
+            reply_markup=m.order_process_first(db, lang)
+        )
+        user_history[message.chat.id].append(message.text)
+
 
 @bot.message_handler(func=lambda message: message.text.isdigit())
 def handle_digit_input(message):
@@ -191,6 +211,7 @@ def handle_digit_input(message):
                     bot.send_message(message.chat.id, text=_(
                         'Извините, но этот продукт не доступен', lang),
                         reply_markup=m.start_menu(message.chat.id, lang))
+                    user_history[message.chat.id].append(message.text)
                 else:
                     subtotal = number * item[9]
 
@@ -218,12 +239,14 @@ def handle_digit_input(message):
                              f'\n\n{_("Хотите добавить еще что-то?", lang)}',
                         reply_markup=m.start_menu(message.chat.id, lang),
                     )
+                    user_history[message.chat.id].append(message.text)
 
             elif item[1] == 'water':
                 if db.count_water(item[0]) == 0:
                     bot.send_message(message.chat.id, text=_(
                         'Извините, но этот продукт не доступен', lang),
                         reply_markup=m.start_menu(message.chat.id, lang))
+                    user_history[message.chat.id].append(message.text)
                 else:
                     subtotal = number * item[4]
                     db.insert_water_order(
@@ -247,11 +270,13 @@ def handle_digit_input(message):
                              f'\n\n{_("Хотите добавить еще что-то?", lang)}',
                         reply_markup=m.start_menu(message.chat.id, lang),
                     )
+                    user_history[message.chat.id].append(message.text)
         except Exception as e:
             print(e)
             bot.send_message(message.chat.id,
                  _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
                    lang))
+            user_history[message.chat.id].append(message.text)
 
 
 @bot.message_handler(func=lambda message: True)
@@ -271,7 +296,6 @@ def handle_messages(message):
             )
             user_history[message.chat.id].append(message.text)
 
-        # handler for water products
         water_order = db.get_water_order(message.text)
         if water_order and message.text == water_order[0][2]:
             item = db.get_water_order(message.text)[0]
@@ -299,8 +323,6 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
             reply_markup=m.water_amount(db,lang,item[0]))
             user_history[message.chat.id].append(message.text)
 
-
-        # handle cooler order
         cooler_order = db.get_cooler_order(message.text)
         if cooler_order and message.text == cooler_order[0][2]:
             item = db.get_cooler_order(message.text)[0]

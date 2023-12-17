@@ -126,7 +126,7 @@ def water_amount(db, lang, id):
     return markup
 
 def cooler_amount(db, lang, id):
-    water_amount = db.get_cooler_amount(id=id) # it is 5
+    water_amount = db.get_cooler_amount(id=id)
 
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     translated_back_text = _("⬅️ Назад", lang)
@@ -156,13 +156,40 @@ def get_basket(lang):
 
 def empty_basket(lang):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    item0 = KeyboardButton(_('🚚 Оформить заказ', lang))
     item1 = KeyboardButton(_('💧 Вода', lang))
     item2 = KeyboardButton(_('🚰 Кулер', lang))
     item3 = KeyboardButton(_("🌐 Выбрать язык", lang))
     item4 = KeyboardButton(_('🔄 Очистить корзину', lang))
     item5 = KeyboardButton(_('📥 Корзинка', lang))
+    markup.add(item0)
     markup.add(item1, item2)
     markup.add(item5, item4)
     markup.add(item3)
 
     return markup
+
+def order_process_first(db, lang):
+    buttons = db.get_delivery_buttons()
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    row_buttons = []
+
+    for item in buttons:
+        translated_product_name = _(item[1], lang)
+        button = KeyboardButton(translated_product_name)
+
+        row_buttons.append(button)
+
+        if len(row_buttons) == 1:
+            markup.add(*row_buttons)
+            row_buttons = []
+
+    if len(row_buttons) == 1:
+        markup.add(row_buttons[0])
+
+    translated_back_text = _("⬅️ Назад", lang)
+    back = KeyboardButton(text=translated_back_text)
+    markup.add(back)
+
+    return markup
+
