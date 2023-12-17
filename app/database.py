@@ -272,7 +272,7 @@ class Database:
             result = cursor.fetchall()
             return result
 
-    def get_after_deletion(self, quantity, chat_id):
+    def update_water_stock(self, quantity, chat_id):
         with self._create_connection() as connection:
             cursor = connection.cursor()
             query = ("UPDATE water_bottle SET quantity = quantity + ? "
@@ -282,7 +282,17 @@ class Database:
             result = cursor.rowcount
             return result
 
-    def update_basket(self, chat_id):
+    def update_cooler_stock(self, quantity, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = ("UPDATE water_cooler SET quantity = quantity + ? "
+                     "WHERE id IN ("
+                     "SELECT cooler_id FROM basket WHERE chat_id = ?);")
+            cursor.execute(query, (quantity, chat_id,))
+            result = cursor.rowcount
+            return result
+
+    def get_water_id(self, chat_id):
         with self._create_connection() as connection:
             cursor = connection.cursor()
             select_query = "SELECT water_id, quantity FROM basket WHERE chat_id = ?;"
@@ -292,6 +302,28 @@ class Database:
                 water_id, quantity = record
 
                 return water_id, quantity
+
+    def get_cooler_id(self, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            select_query = "SELECT cooler_id, quantity FROM basket WHERE chat_id = ?;"
+            cursor.execute(select_query, (chat_id,))
+            records = cursor.fetchall()
+            for record in records:
+                water_id, quantity = record
+
+                return water_id, quantity
+
+    # def update_cooler_stock(self, chat_id):
+    #     with self._create_connection() as connection:
+    #         cursor = connection.cursor()
+    #         select_query = "SELECT cooler_id, water_id, quantity FROM basket WHERE chat_id = ?;"
+    #         cursor.execute(select_query, (chat_id,))
+    #         records = cursor.fetchall()
+    #         for record in records:
+    #             cooler_id, water_id, quantity = record
+    #
+    #             return cooler_id, water_id, quantity
 
     def get_delivery_buttons(self):
         buttons = []

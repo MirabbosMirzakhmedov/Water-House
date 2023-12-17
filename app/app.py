@@ -122,10 +122,14 @@ def see_basket(message):
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
         try:
-            q = db.update_basket(message.chat.id)
-            db.get_after_deletion(chat_id=message.chat.id, quantity=q[1])
+            q = db.get_cooler_id(message.chat.id) or db.get_water_id(message.chat.id)
+            (db.update_cooler_stock(chat_id=message.chat.id, quantity=q[1])
+             or db.update_water_stock(chat_id=message.chat.id, quantity=q[1]))
             db.empty_basket(message.chat.id)
-            bot.send_message(message.chat.id, _("Ваша корзинка теперь пуста",lang))
+            bot.send_message(
+                message.chat.id, _("Ваша корзинка теперь пуста",lang),
+                reply_markup=m.start_menu(message.chat.id, lang)
+            )
             user_history[message.chat.id].append(message.text)
         except:
             bot.send_message(
