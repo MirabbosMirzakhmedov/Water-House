@@ -314,17 +314,6 @@ class Database:
 
                 return water_id, quantity
 
-    # def update_cooler_stock(self, chat_id):
-    #     with self._create_connection() as connection:
-    #         cursor = connection.cursor()
-    #         select_query = "SELECT cooler_id, water_id, quantity FROM basket WHERE chat_id = ?;"
-    #         cursor.execute(select_query, (chat_id,))
-    #         records = cursor.fetchall()
-    #         for record in records:
-    #             cooler_id, water_id, quantity = record
-    #
-    #             return cooler_id, water_id, quantity
-
     def get_delivery_buttons(self):
         buttons = []
         with self._create_connection() as connection:
@@ -336,3 +325,19 @@ class Database:
                 button_id, name_ru, name_uz = result
                 buttons.append([button_id, name_ru, name_uz])
         return buttons
+
+    def generate_excel(self):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "select * from water_bottle;" # can be changed to orders table
+            cursor.execute(query,)
+            results = cursor.fetchall()
+            return results
+
+    def get_admins(self):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "SELECT chat_id FROM users WHERE role = ?"
+            cursor.execute(query, ('admin',))
+            results = cursor.fetchall()
+            return results

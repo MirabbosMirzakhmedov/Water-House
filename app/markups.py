@@ -2,7 +2,9 @@ from telebot.types import (
     ReplyKeyboardMarkup, KeyboardButton,
     InlineKeyboardMarkup, InlineKeyboardButton
 )
+
 from translations import _
+
 
 def start_menu(chat_id, lang):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)

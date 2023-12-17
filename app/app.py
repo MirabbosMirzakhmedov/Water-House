@@ -1,6 +1,9 @@
 import logging
+import os
 from datetime import datetime
+
 import telebot as telebot
+from openpyxl import Workbook
 from telebot.types import CallbackQuery
 
 import config.secret as payload
@@ -49,6 +52,35 @@ def sendall(message):
                 except:
                     db.set_active(chat_id=row[0], active=0)
             bot.send_message(message.chat.id, _('Успешная рассылка!', lang))
+
+@bot.message_handler(commands=['excel'])
+def send_file(message):
+    if message.chat.type == 'private':
+        admins = db.get_admins()
+        if any(chat_id[0] == message.chat.id for chat_id in admins):
+            lang = db.get_lang(message.chat.id)
+            file_path = 'C:/projects/Water House/report.xlsx'
+
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as file:
+                    bot.send_document(chat_id=message.chat.id, document=file,
+                        caption=_("Ваш репорт готов ✅", lang))
+            else:
+                orders = db.generate_excel()
+                workbook = Workbook()
+                sheet = workbook.active
+
+                header = ['id', 'id_def', 'name', 'volume', 'price', 'definition', 'product_id', 'quantity']
+                sheet.append(header)
+
+                for order in orders:
+                    sheet.append(order)
+
+                workbook.save(file_path)
+                workbook.close()
+
+                with open(file_path, 'rb') as file:
+                    bot.send_document(message.chat.id, file)
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith('lang_'))
 def set_language(callback: CallbackQuery):
