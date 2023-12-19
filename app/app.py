@@ -243,7 +243,12 @@ def handle_digit_input(message):
             date_created = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if item[1] == 'cooler':
-                if db.count_cooler(item[0]) == 0:
+                if number > item[10]:
+                    bot.send_message(
+                        message.chat.id,
+                        text=_('Неправильно выбранное количество. Пожалуйста, попробуйте еще раз', lang)
+                    )
+                elif db.count_cooler(item[0]) == 0:
                     bot.send_message(message.chat.id, text=_(
                         'Извините, но этот продукт не доступен', lang),
                         reply_markup=m.start_menu(message.chat.id, lang))
@@ -278,7 +283,12 @@ def handle_digit_input(message):
                     user_history[message.chat.id].append(message.text)
 
             elif item[1] == 'water':
-                if db.count_water(item[0]) == 0:
+                if number > item[7]:
+                    bot.send_message(
+                        message.chat.id,
+                        text=_('Неправильно выбранное количество. Пожалуйста, попробуйте еще раз', lang)
+                    )
+                elif db.count_water(item[0]) == 0:
                     bot.send_message(message.chat.id, text=_(
                         'Извините, но этот продукт не доступен', lang),
                         reply_markup=m.start_menu(message.chat.id, lang))
