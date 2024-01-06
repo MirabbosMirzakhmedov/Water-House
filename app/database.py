@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, schedule, time
 
 class Database:
     def __init__(self, db_file):
@@ -109,7 +109,6 @@ class Database:
                 else:
                     return None
         except Exception as e:
-            print(f"Error retrieving image: {e}")
             return None
 
     def get_cooler_image(self, cooler_id):
@@ -125,7 +124,6 @@ class Database:
                 else:
                     return None
         except Exception as e:
-            print(f"Error retrieving image: {e}")
             return None
 
     def update_water_order(self, chat_id, quantity, water_id):

@@ -1,5 +1,4 @@
-import logging
-import os
+import logging, os
 from datetime import datetime
 
 import telebot as telebot
@@ -11,7 +10,8 @@ import markups as m
 from database import Database
 from translations import _
 
-bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
+#bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
+bot: telebot.TeleBot = telebot.TeleBot(token='6626753910:AAFw98jNfWoGfjsQau-_026F7lvg94_8nLY')
 db = Database('../database/water_house.db')
 user_history = {}
 item = ()
@@ -35,6 +35,7 @@ def start(message):
             )
             user_id = message.from_user.id
             user_history[user_id] = []
+
 
 
 @bot.message_handler(commands=['sendall'])
@@ -81,6 +82,8 @@ def send_file(message):
 
                 with open(file_path, 'rb') as file:
                     bot.send_document(message.chat.id, file)
+
+
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith('lang_'))
 def set_language(callback: CallbackQuery):
@@ -276,8 +279,8 @@ def handle_digit_input(message):
 
                     bot.send_message(
                         chat_id=message.chat.id,
-                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        text=f'{_("Отличный выбор", lang)}'
+                             f'\n{_("Хотите добавить еще что-то?", lang)}',
                         reply_markup=m.start_menu(message.chat.id, lang),
                     )
                     user_history[message.chat.id].append(message.text)
@@ -312,13 +315,12 @@ def handle_digit_input(message):
 
                     bot.send_message(
                         chat_id=message.chat.id,
-                        text=f'{_("Отличный выбор, у вас есть 3 часа на завершение заказа, иначе он будет удален из корзины.", lang)}'
-                             f'\n\n{_("Хотите добавить еще что-то?", lang)}',
+                        text=f'{_("Отличный выбор", lang)}'
+                             f'\n{_("Хотите добавить еще что-то?", lang)}',
                         reply_markup=m.start_menu(message.chat.id, lang),
                     )
                     user_history[message.chat.id].append(message.text)
         except Exception as e:
-            print(e)
             bot.send_message(message.chat.id,
                  _("Что-то пошло не так. Пожалуйста, повторите попытку позже.",
                    lang))
@@ -413,12 +415,8 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
 
 
 
-
-
-
-
-try:
-    print('Bot is running')
+if __name__ == "__main__":
+    print('Bot started')
     bot.infinity_polling(
         skip_pending=False,
         logger_level=logging.ERROR,
@@ -426,6 +424,3 @@ try:
         restart_on_change=False,
         path_to_watch=None
     )
-except KeyboardInterrupt:
-    bot.stop_polling()
-    print('Bot stopped')
