@@ -10,8 +10,7 @@ import markups as m
 from database import Database
 from translations import _
 
-#bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
-bot: telebot.TeleBot = telebot.TeleBot(token='6626753910:AAFw98jNfWoGfjsQau-_026F7lvg94_8nLY')
+bot: telebot.TeleBot = telebot.TeleBot(token=payload.BOT_TOKEN)
 db = Database('../database/water_house.db')
 user_history = {}
 item = ()
