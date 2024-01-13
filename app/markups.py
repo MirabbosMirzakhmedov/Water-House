@@ -113,7 +113,9 @@ def water_amount(db, lang, id):
     markup.add(back)
     row_buttons = []
 
-    for quantity in range(1, water_amount + 1):
+    max_buttons = 10
+
+    for quantity in range(1, min(water_amount, max_buttons) + 1):
         button_text = str(quantity)
         button = KeyboardButton(button_text)
         row_buttons.append(button)
@@ -124,11 +126,10 @@ def water_amount(db, lang, id):
 
     if row_buttons:
         markup.add(*row_buttons)
-
     return markup
 
 def cooler_amount(db, lang, id):
-    water_amount = db.get_cooler_amount(id=id)
+    cooler_amount = db.get_cooler_amount(id=id)
 
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     translated_back_text = _("⬅️ Назад", lang)
@@ -136,7 +137,9 @@ def cooler_amount(db, lang, id):
     markup.add(back)
     row_buttons = []
 
-    for quantity in range(1, water_amount + 1):
+    max_buttons = 10
+
+    for quantity in range(1, min(cooler_amount, max_buttons) + 1):
         button_text = str(quantity)
         button = KeyboardButton(button_text)
         row_buttons.append(button)
