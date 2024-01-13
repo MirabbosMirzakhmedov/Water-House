@@ -16,6 +16,22 @@ user_history = {}
 item = ()
 
 
+@bot.message_handler(commands=['admin'])
+def admin(message):
+    if message.chat.type == 'private':
+        for admin in db.get_admins():
+            if message.chat.id == admin[0]:
+                lang = db.get_lang(message.chat.id)
+                bot.send_message(
+                    chat_id=message.chat.id,
+                    text=f"""
+{_('Список кнопок', lang)}:\n
+/start - {_('Запустить бота', lang)}
+/setadmin - {_('Назначить администратора', lang)}
+/sendall - {_('Отправить рассылку', lang)}
+/excel - {_('Загрузить отчет', lang)}
+""")
+
 @bot.message_handler(commands=['start'])
 def start(message):
     if message.chat.type == 'private':
@@ -35,7 +51,51 @@ def start(message):
             user_id = message.from_user.id
             user_history[user_id] = []
 
-
+@bot.message_handler(commands=['setadmin'])
+def setadmin(message):
+    if message.chat.type == 'private':
+        for admin in db.get_admins():
+            if message.chat.id == admin[0]:
+                lang = db.get_lang(message.chat.id)
+                new_admin_id = message.text[10:]
+                if len(new_admin_id) == 0:
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=_('Пожалуйста, присылайте в этом формате: /setadmin XXXXXXXX', lang)
+                    )
+                elif len(new_admin_id) > 1:
+                    try:
+                        admin_id_int = int(new_admin_id)
+                        for admin in db.get_admins():
+                            if admin_id_int == admin[0]:
+                                db.set_admin(chat_id=admin_id_int)
+                                bot.send_message(
+                                    chat_id=message.chat.id,
+                                    text=_('Вы успешно установили администратора', lang)
+                                )
+                                return
+                        else:
+                            bot.send_message(
+                                chat_id=message.chat.id,
+                                text=_('Неверный формат ID', lang)
+                            )
+                    except ValueError:
+                        bot.send_message(
+                            chat_id=message.chat.id,
+                            text=_('Неверный формат ID', lang)
+                        )
+                    except Exception:
+                        bot.send_message(
+                            chat_id=message.chat.id,
+                            text=_('Пожалуйста, присылайте в этом формате: /setadmin XXXXXXXX', lang)
+                        )
+                else:
+                    bot.send_message(
+                        chat_id=message.chat.id,
+                        text=_(
+                            'Пожалуйста, присылайте в этом формате: /setadmin XXXXXXXX',
+                            lang)
+                    )
 
 @bot.message_handler(commands=['sendall'])
 def sendall(message):
@@ -81,7 +141,6 @@ def send_file(message):
 
                 with open(file_path, 'rb') as file:
                     bot.send_document(message.chat.id, file)
-
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith('lang_'))
@@ -151,25 +210,43 @@ def choose_lang_handler(message):
 @bot.message_handler(
     func=lambda message: message.text == "🔄 Очистить корзину"
     or message.text == "🔄 Savatni tozalash")
-def see_basket(message):
+def empty_basket(message):
     global item
     if message.chat.type == 'private':
         lang = db.get_lang(message.chat.id)
         try:
-            q = db.get_cooler_id(message.chat.id) or db.get_water_id(message.chat.id)
-            (db.update_cooler_stock(chat_id=message.chat.id, quantity=q[1])
-             or db.update_water_stock(chat_id=message.chat.id, quantity=q[1]))
-            db.empty_basket(message.chat.id)
+
+            for item_q in [db.get_cooler_id(message.chat.id),
+                           db.get_water_id(message.chat.id)]:
+                if item_q and len(item_q) > 1:
+                    if len(item_q) == 2:
+                        if item_q == db.get_cooler_id(message.chat.id):
+                            db.update_cooler_stock(quantity=item_q[1],
+                                                   chat_id=message.chat.id)
+                        elif item_q == db.get_water_id(message.chat.id):
+                            db.update_water_stock(quantity=item_q[1],
+                                                  chat_id=message.chat.id)
+                    else:
+                        bot.send_message(
+                            message.chat.id,
+                            text=_("Что-то произошло не так", lang))
+
+            basket_items = db.get_basket(message.chat.id)
+            if basket_items:
+                db.empty_basket(message.chat.id)
+                bot.send_message(
+                    message.chat.id, _("Ваша корзинка теперь пуста", lang),
+                    reply_markup=m.start_menu(message.chat.id, lang)
+                )
+                user_history[message.chat.id].append(message.text)
+            else:
+                bot.send_message(
+                    message.chat.id, text=_("Ваша корзина пока пуста", lang))
+                user_history[message.chat.id].append(message.text)
+
+        except Exception as e:
             bot.send_message(
-                message.chat.id, _("Ваша корзинка теперь пуста",lang),
-                reply_markup=m.start_menu(message.chat.id, lang)
-            )
-            user_history[message.chat.id].append(message.text)
-        except:
-            bot.send_message(
-                message.chat.id,
-                text=_("Ваша корзина пока пуста", lang))
-            user_history[message.chat.id].append(message.text)
+                message.chat.id, text=_("Что-то произошло не так", lang))
 
 @bot.message_handler(
     func=lambda message: message.text == "📥 Корзинка"

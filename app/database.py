@@ -265,10 +265,17 @@ class Database:
     def empty_basket(self, chat_id):
         with self._create_connection() as connection:
             cursor = connection.cursor()
-            query = ("DELETE FROM basket WHERE chat_id = ?;")
+            query = "DELETE FROM basket WHERE chat_id = ?;"
             cursor.execute(query, (chat_id,))
-            result = cursor.fetchall()
-            return result
+            connection.commit()
+
+    def get_basket(self, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "select * from basket where chat_id = ?;"
+            cursor.execute(query, (chat_id,))
+            results = cursor.fetchall()
+            return results
 
     def update_water_stock(self, quantity, chat_id):
         with self._create_connection() as connection:
@@ -293,7 +300,8 @@ class Database:
     def get_water_id(self, chat_id):
         with self._create_connection() as connection:
             cursor = connection.cursor()
-            select_query = "SELECT water_id, quantity FROM basket WHERE chat_id = ?;"
+            select_query = ("SELECT water_id, quantity FROM basket "
+                            "WHERE water_id IS NOT NULL AND water_id != '' AND chat_id = ?;")
             cursor.execute(select_query, (chat_id,))
             records = cursor.fetchall()
             for record in records:
@@ -304,13 +312,13 @@ class Database:
     def get_cooler_id(self, chat_id):
         with self._create_connection() as connection:
             cursor = connection.cursor()
-            select_query = "SELECT cooler_id, quantity FROM basket WHERE chat_id = ?;"
+            select_query = ("SELECT cooler_id, quantity FROM basket "
+                            "WHERE cooler_id IS NOT NULL AND cooler_id != '' AND chat_id = ?;")
             cursor.execute(select_query, (chat_id,))
             records = cursor.fetchall()
             for record in records:
-                water_id, quantity = record
-
-                return water_id, quantity
+                cooler_id, quantity = record
+                return cooler_id, quantity
 
     def get_delivery_buttons(self):
         buttons = []
@@ -339,3 +347,10 @@ class Database:
             cursor.execute(query, ('admin',))
             results = cursor.fetchall()
             return results
+
+    def set_admin(self, chat_id):
+        with self._create_connection() as connection:
+            cursor = connection.cursor()
+            query = "UPDATE users SET role = ? WHERE chat_id = ?;"
+            cursor.execute(query, ('admin', chat_id))
+            connection.commit()
