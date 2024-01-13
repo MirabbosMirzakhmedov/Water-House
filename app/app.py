@@ -491,12 +491,14 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
 
 
 
+
+
+
+
 if __name__ == "__main__":
-    print('Bot started')
-    bot.infinity_polling(
-        skip_pending=False,
-        logger_level=logging.ERROR,
-        allowed_updates=None,
-        restart_on_change=False,
-        path_to_watch=None
-    )
+    print('Bot is running')
+    bot.polling()
+    bot.polling(none_stop=True)
+    bot.polling(interval=3)
+    while True:
+        pass
