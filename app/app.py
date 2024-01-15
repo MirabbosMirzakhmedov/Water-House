@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, time
 from datetime import datetime
 
 import telebot as telebot
@@ -119,12 +119,13 @@ def send_file(message):
         admins = db.get_admins()
         if any(chat_id[0] == message.chat.id for chat_id in admins):
             lang = db.get_lang(message.chat.id)
-            file_path = 'C:/projects/Water House/report.xlsx'
+            today = str(datetime.today())
+            file_path = f'C:/projects/Water House/report_{today[:10]}.xlsx'
 
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as file:
                     bot.send_document(chat_id=message.chat.id, document=file,
-                        caption=_("Ваш репорт готов ✅", lang))
+                        caption=_("Ваш отчет готов ✅", lang))
             else:
                 orders = db.generate_excel()
                 workbook = Workbook()
@@ -483,22 +484,3 @@ f"{_('Выберите количество', lang)}\n{_('Или напишит�
                 reply_markup=m.cooler_amount(db=db, lang=lang, id=item[0]))
             user_history[message.chat.id].append(message.text)
             return
-
-
-
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    print('Bot is running')
-    bot.polling()
-    bot.polling(none_stop=True)
-    bot.polling(interval=3)
-    while True:
-        pass
